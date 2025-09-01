@@ -12,12 +12,12 @@ OBS_SPACE = env.observation_space.shape[0]
 
 GAMMA = 0.99
 TAU = 0.005
-ACTOR_LR = 1e-4
-CRITIC_LR = 1e-3
+ACTOR_LR = 5e-5
+CRITIC_LR = 5e-4
 
 EXPERIENCE_REPLAY_LENGTH = 300000
 
-NUM_EPOCHS = 1000
+NUM_EPOCHS = 5000
 BATCH_SIZE = 256
 TRAINING_START_STEP = 10000
 
@@ -36,11 +36,11 @@ class Actor(nn.Module):
     def __init__(self):
         super(Actor, self).__init__()
         self.actor = nn.Sequential(
-            nn.Linear(OBS_SPACE, 128),
+            nn.Linear(OBS_SPACE, 256),
             nn.ReLU(),
-            nn.Linear(128,128),
+            nn.Linear(256,256),
             nn.ReLU(),
-            nn.Linear(128, ACTION_SPACE),
+            nn.Linear(256, ACTION_SPACE),
             nn.Tanh()
         )
 
@@ -51,19 +51,19 @@ class Critic(nn.Module):
     def __init__(self):
         super(Critic, self).__init__()
         self.critic1 = nn.Sequential(
-            nn.Linear(ACTION_SPACE + OBS_SPACE, 128),
+            nn.Linear(ACTION_SPACE + OBS_SPACE, 256),
             nn.ReLU(),
-            nn.Linear(128,128),
+            nn.Linear(256,256),
             nn.ReLU(),
-            nn.Linear(128,1)
+            nn.Linear(256,1)
         )
 
         self.critic2 = nn.Sequential(
-            nn.Linear(ACTION_SPACE + OBS_SPACE, 128),
+            nn.Linear(ACTION_SPACE + OBS_SPACE, 256),
             nn.ReLU(),
-            nn.Linear(128,128),
+            nn.Linear(256,256),
             nn.ReLU(),
-            nn.Linear(128,1)
+            nn.Linear(256,1)
         )
 
     def forward(self, state, action):
@@ -120,6 +120,7 @@ for epoch in range(NUM_EPOCHS):
 
             critic_optim.zero_grad()
             critic_loss.backward()
+            torch.nn.utils.clip_grad_norm_(critic.parameters(), 1.0)
             critic_optim.step()
 
             current_actor_step = (current_actor_step + 1) % ACTOR_UPDATE_PERIOD
@@ -144,11 +145,12 @@ for epoch in range(NUM_EPOCHS):
     rewards_over_time.append(reward_during_epoch)
 
     if epoch % 10 == 0 and epoch != 0:
-        print(f"Epoch {epoch}: Current Reward {rewards_over_time[-1]:.2f}, Avg Reward (Last 50) {np.mean(rewards_over_time[max(0, epoch-50):]):.2f}")
+        print(f"Epoch {epoch}: Current Reward {rewards_over_time[-1]:.2f}, Avg Reward (Last 50) {np.mean(rewards_over_time[max(0, epoch - 50):]):.2f}")
 
 torch.save(actor.state_dict(), "Ant.pt")
+
 plt.plot(rewards_over_time, color = "blue", label = "Rewards")
-plt.plot([np.mean(rewards_over_time[max(0,epoch-50):epoch]) for epoch in range(NUM_EPOCHS)], color = "red", label = "Average Rewards")
+plt.plot([np.mean(rewards_over_time[max(0, epoch - 50) : epoch]) for epoch in range(NUM_EPOCHS)], color = "red", label = "Average Rewards")
 plt.grid()
 plt.legend()
 plt.xlabel("Epochs")
