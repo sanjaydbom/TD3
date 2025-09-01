@@ -15,15 +15,15 @@ TAU = 0.005
 ACTOR_LR = 1e-4
 CRITIC_LR = 1e-3
 
-EXPERIENCE_REPLAY_LENGTH = 3e5
+EXPERIENCE_REPLAY_LENGTH = 300000
 
 NUM_EPOCHS = 1000
 BATCH_SIZE = 256
 TRAINING_START_STEP = 10000
 
-EXPLORATION_SIGMA = 0.5
-SMOOTHING_SIGMA = 0.5
-SMOOTHING_CLIP_BOUNDS = 1
+EXPLORATION_SIGMA = 0.1
+SMOOTHING_SIGMA = 0.2
+SMOOTHING_CLIP_BOUNDS = 0.5
 
 ACTOR_UPDATE_PERIOD = 2
 current_actor_step = 0
@@ -77,7 +77,7 @@ target_actor.load_state_dict(actor.state_dict())
 
 critic = Critic()
 critic_optim = optim.Adam(critic.parameters(), CRITIC_LR)
-target_critic = critic()
+target_critic = Critic()
 target_critic.load_state_dict(critic.state_dict())
 
 mse = nn.MSELoss()
@@ -97,7 +97,9 @@ for epoch in range(NUM_EPOCHS):
             state = next_state
             reward_during_epoch += reward
 
-        if len(experience_replay) > TRAINING_START_STEP:
+        if len(experience_replay) >= TRAINING_START_STEP:
+            if len(experience_replay) == TRAINING_START_STEP:
+                print(f"TRAINING STARTED ON EPOCH {epoch}: {np.mean(rewards_over_time):.2f}")
             random_sample = random.sample(experience_replay, BATCH_SIZE)
             state_array, action_array, reward_array, next_state_array, done_array = zip(*random_sample)
 
@@ -105,13 +107,13 @@ for epoch in range(NUM_EPOCHS):
             action_array = torch.stack(action_array)
             reward_array = torch.tensor(reward_array, dtype = torch.float32)
             next_state_array = torch.stack(next_state_array)
-            done_array = torch.tensor(next_state_array)
+            done_array = torch.tensor(done_array)
 
             with torch.no_grad():
                 best_next_actions = target_actor(next_state_array)
                 smoothing_noise = torch.clamp(torch.normal(0,SMOOTHING_SIGMA, size = (BATCH_SIZE, ACTION_SPACE)),-SMOOTHING_CLIP_BOUNDS, SMOOTHING_CLIP_BOUNDS)
 
-                target_state_action_values = reward_array.unsqueeze(1) + GAMMA * target_critic(next_state_array, best_next_actions + smoothing_noise) * (1 - done_array).unsqueeze(1)
+                target_state_action_values = reward_array.unsqueeze(1) + GAMMA * torch.minimum(*target_critic(next_state_array, torch.clamp(best_next_actions + smoothing_noise,-1,1))) * (1 - done_array).unsqueeze(1)
             predicted_state_action_values1, predicted_state_action_values2 = critic(state_array, action_array)
 
             critic_loss = mse(target_state_action_values, predicted_state_action_values1) + mse(target_state_action_values, predicted_state_action_values2)
@@ -124,7 +126,8 @@ for epoch in range(NUM_EPOCHS):
 
             if current_actor_step == 0:
                 best_actions = actor(state_array)
-                actor_loss = torch.minimum(critic(state_array, best_actions))
+                actor_loss = -critic(state_array, best_actions)[0].mean()
+
                 actor_optim.zero_grad()
                 actor_loss.backward()
                 actor_optim.step()
@@ -141,7 +144,7 @@ for epoch in range(NUM_EPOCHS):
     rewards_over_time.append(reward_during_epoch)
 
     if epoch % 10 == 0 and epoch != 0:
-        print(f"Epoch {epoch}: Current Reward {rewards_over_time[-1]:.2f}, Avg Reward (Last 50) {np.mean(rewards_over_time[max(0, epoch-50):])}")
+        print(f"Epoch {epoch}: Current Reward {rewards_over_time[-1]:.2f}, Avg Reward (Last 50) {np.mean(rewards_over_time[max(0, epoch-50):]):.2f}")
 
 torch.save(actor.state_dict(), "Ant.pt")
 plt.plot(rewards_over_time, color = "blue", label = "Rewards")
