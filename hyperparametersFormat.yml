@@ -1,0 +1,26 @@
+ENV_NAME: #Name of the environment
+
+ACTOR_HIDDEN_LAYERS: #Hidden Layers for Actor. Don't include the input and output layer
+CRITIC_HIDDEN_LAYERS: #Hidden Layers for Critic. Don't include the input and output layer
+
+ACTOR_LR:  #Actor Learning Rate-use scientific notation
+CRITIC_LR:  #Critic Learning Rate-use scientific notation
+
+GAMMA:  #Determines how much future rewards matter-dont use scientific notation
+TAU:  #How much to move target network toward actual network-dont use scientific notation
+
+ACTOR_EXPLORATION_SIGMA: #Exploration noise during training
+CRITIC_SIGMA: #Noise to smooth out the critic estimate
+ACTOR_UPDATE_FREQ: #How often to update the actor
+
+NUM_EPOCHS:  #Number of training runs to do-Integer
+BATCH_SIZE:  #Number of experiences to train on during training step-Integer
+TRAINING_START_STEP:  #Minimum number of experiences needed to start training-Integer, must be greater than batch size
+EXPERIENCE_REPLAY_LENGTH:  #Size of the experience array-Integer
+
+LOGGINIG_FREQUECY:  #How often to test the agent and print stats-Integer
+SLIDING_WINDOW_SIZE:  #Size of the sliding window of the rewards to get average-Integer
+
+FILE_NAME:  #General File Name-string of path to file
+
+NUM_TESTS:  #Number of tests-Integer

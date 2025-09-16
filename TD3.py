@@ -88,17 +88,19 @@ for epoch in range(NUM_EPOCHS):
             critic_loss.backward()
             critic_optim.step()
 
-            actor_optim.zero_grad()
-            predicted_best_actions = actor(state_array) + torch.normal(0,CRITIC_SIGMA)
-            torch.clamp(predicted_best_actions, -action_range, action_range)
-            actor_loss = -critic(state_array,predicted_best_actions)[0].mean()
-            actor_loss.backward()
-            actor_optim.step()
-
-            target_critic.update(critic)
             cur_step = (cur_step + 1) % ACTOR_UPDATE_FREQ
+
             if cur_step == 0:
+                actor_optim.zero_grad()
+                predicted_best_actions = actor(state_array) + torch.normal(0,CRITIC_SIGMA)
+                torch.clamp(predicted_best_actions, -action_range, action_range)
+                
+                actor_loss = -critic(state_array,predicted_best_actions)[0].mean()
+                actor_loss.backward()
+                actor_optim.step()
+
                 target_actor.update(actor)
+                target_critic.update(critic)
 
             actor_loss_array.append(actor_loss.detach().numpy())
             critic_loss_array.append(critic_loss.detach().numpy())
