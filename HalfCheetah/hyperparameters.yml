@@ -23,4 +23,4 @@ SLIDING_WINDOW_SIZE:  100
 
 FILE_NAME:  './HalfCheetah/HalfCheetah'
 
-NUM_TESTS:  100
+NUM_TESTS:  10000
