@@ -1,0 +1,9 @@
+
+Total Runs: 100
+Mean Score: -196.03
+Standard Deviation: 114.62
+Median Score: -134.78
+Min Score: -492.01
+Max Score: -0.03
+1st Quantile: -261.62
+3rd Quantile: -127.03
