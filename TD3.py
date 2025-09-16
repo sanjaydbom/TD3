@@ -80,7 +80,7 @@ for epoch in range(NUM_EPOCHS):
 
             with torch.no_grad():
                 best_next_actions = target_actor(next_state_array)
-                target_state_values = reward_array + GAMMA * torch.minimum(target_critic(next_state_array, best_next_actions)) * (1 - done_array)
+                target_state_values = reward_array + GAMMA * torch.minimum(*target_critic(next_state_array, best_next_actions)) * (1 - done_array)
             predicted_state_values = critic(state_array, action_array)
 
             critic_optim.zero_grad()
@@ -88,13 +88,11 @@ for epoch in range(NUM_EPOCHS):
             critic_loss.backward()
             critic_optim.step()
 
-            cur_step = (cur_step + 1) % ACTOR_UPDATE_FREQ
-
             if cur_step == 0:
                 actor_optim.zero_grad()
-                predicted_best_actions = actor(state_array) + torch.normal(0,CRITIC_SIGMA)
+                predicted_best_actions = actor(state_array) + torch.normal(0,CRITIC_SIGMA, (BATCH_SIZE, ACTION_SPACE))
                 torch.clamp(predicted_best_actions, -action_range, action_range)
-                
+
                 actor_loss = -critic(state_array,predicted_best_actions)[0].mean()
                 actor_loss.backward()
                 actor_optim.step()
@@ -102,8 +100,13 @@ for epoch in range(NUM_EPOCHS):
                 target_actor.update(actor)
                 target_critic.update(critic)
 
-            actor_loss_array.append(actor_loss.detach().numpy())
+                actor_loss_array.append(actor_loss.detach().numpy())
+            else:
+                actor_loss_array.append(actor_loss_array[-1])
             critic_loss_array.append(critic_loss.detach().numpy())
+
+
+            cur_step = (cur_step + 1) % ACTOR_UPDATE_FREQ
 
         if terminated or truncated:
             break

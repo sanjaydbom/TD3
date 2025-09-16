@@ -49,7 +49,7 @@ class HalfCritic(nn.Module):
     def update(self, critic):
         for target_param, param in zip(self.parameters(), critic.parameters()):
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
-            
+
 
 class Critic(nn.Module):
     def __init__(self, obs_space, action_space, hidden_layers, tau):
@@ -59,6 +59,10 @@ class Critic(nn.Module):
 
     def forward(self,state,action):
         return self.critic1(state,action), self.critic2(state,action)
+    
+    def update(self, critic):
+        self.critic1.update(critic.critic1)
+        self.critic2.update(critic.critic2)
 
     
 def get_architecture(obs_space, action_space, actor_hidden, critic_hidden, tau, action_range):
